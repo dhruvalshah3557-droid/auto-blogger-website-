@@ -1,4 +1,6 @@
 const { chromium } = require('playwright');
+const fs = require('fs');
+const path = require('path');
 
 class BlogUploader {
   constructor(config) {
@@ -14,101 +16,64 @@ class BlogUploader {
   }
 
   async login() {
-    const { loginUrl, username, password, dashboardUrl } = this.config.admin;
+    const { loginUrl, username, password } = this.config.admin;
     await this.page.goto(loginUrl, { waitUntil: 'domcontentloaded' });
     await this.page.fill('#UserName', username);
     await this.page.fill('#UserPassword', password);
     await this.page.click('#btnLogin');
     await this.page.waitForLoadState('domcontentloaded');
-    await this.page.waitForURL(/Dashboard|Admin/i, { timeout: 15000 }).catch(() => {});
+    await this.page.waitForURL(/Admin\/Dashboard/i, { timeout: 20000 }).catch(() => {});
     console.log('Logged in. Current URL:', this.page.url());
     if (!this.page.url().includes('/Admin/')) {
       throw new Error('Login failed: did not reach admin area.');
     }
   }
 
-  async _openBlogPage() {
+  async openBlogPage() {
     await this.page.goto(this.config.admin.blogUrl, { waitUntil: 'domcontentloaded' });
     await this.page.waitForLoadState('domcontentloaded');
-    console.log('Blog page URL:', this.page.url());
+    await this.page.waitForSelector('#Subject', { timeout: 15000 });
   }
 
-  async _findCreateButton() {
-    const candidates = [
-      'a:has-text("Add")',
-      'a:has-text("New")',
-      'a:has-text("Create")',
-      'button:has-text("Add")',
-      'button:has-text("New")',
-      'button:has-text("Create")',
-    ];
-    for (const sel of candidates) {
-      const el = this.page.locator(sel).first();
-      if (await el.isVisible().catch(() => false)) {
-        return el;
-      }
-    }
-    return null;
+  async _setSubject(title) {
+    await this.page.fill('#Subject', title);
   }
 
-  async _fillSmart(fieldName, value) {
-    const lower = fieldName.toLowerCase();
-    const locators = [
-      `input[name*="${fieldName}"]`,
-      `textarea[name*="${fieldName}"]`,
-      `input[placeholder*="${fieldName}"]`,
-      `textarea[placeholder*="${fieldName}"]`,
-      `label:has-text("${fieldName}") >> xpath=following::input[1]`,
-    ];
-    for (const sel of locators) {
-      const el = this.page.locator(sel).first();
-      if (await el.isVisible().catch(() => false)) {
-        await el.fill(value);
-        return true;
+  async _setBody(html) {
+    await this.page.evaluate((bodyHtml) => {
+      if (typeof window.tinymce !== 'undefined' && window.tinymce.get('DescpBody')) {
+        window.tinymce.get('DescpBody').setContent(bodyHtml);
+      } else {
+        document.getElementById('DescpBody').value = bodyHtml;
       }
-    }
-    console.warn(`Could not locate field for "${fieldName}"`);
-    return false;
+    }, html);
+  }
+
+  async _setImage(imagePath) {
+    if (!imagePath) return;
+    const mime = path.extname(imagePath).toLowerCase() === '.png' ? 'image/png' : 'image/jpeg';
+    const b64 = fs.readFileSync(imagePath).toString('base64');
+    await this.page.fill('#file', `data:${mime};base64,${b64}`);
   }
 
   async uploadPost(post) {
-    const blogPage = await this.page.goto(this.config.admin.blogUrl, { waitUntil: 'domcontentloaded' });
-    const createBtn = await this._findCreateButton();
-    if (!createBtn) {
-      throw new Error('Could not find the create/blog button on the blog page. Need manual mapping.');
+    if (this.page.url() !== this.config.admin.blogUrl) {
+      await this.openBlogPage();
     }
-    await createBtn.click();
-    await this.page.waitForLoadState('domcontentloaded');
-
-    await this._fillSmart('Title', post.title);
-    await this._fillSmart('ShortDescription', post.description);
-    await this._fillSmart('Description', post.content);
-
-    const saveBtn = await this._findSaveButton();
-    if (!saveBtn) {
-      throw new Error('Could not find save/submit button on blog form. Need manual mapping.');
+    await this._setSubject(post.title);
+    await this._setBody(post.content);
+    if (post.imagePath) {
+      await this._setImage(post.imagePath);
     }
-    await saveBtn.click();
-    await this.page.waitForLoadState('domcontentloaded');
-    console.log(`Uploaded: "${post.title}"`);
-  }
-
-  async _findSaveButton() {
-    const candidates = [
-      'button[type="submit"]',
-      'input[type="submit"]',
-      'a:has-text("Save")',
-      'button:has-text("Save")',
-      'button:has-text("Submit")',
-      'button:has-text("Post")',
-    ];
-    for (const sel of candidates) {
-      const el = this.page.locator(sel).first();
-      if (await el.isVisible().catch(() => false)) {
-        return el;
-      }
-    }
-    return null;
+    await this.page.click('#btnSave');
+    await this.page.waitForTimeout(3000);
+    const success = await this.page.evaluate(() => {
+      const el = document.querySelector('.alert-success, .notify-success, #successMsg');
+      return el ? el.innerText.trim() : '';
+    });
+    const url = this.page.url();
+    console.log(`Uploaded: "${post.title}" (URL: ${url})`);
+    return success;
   }
 
   async close() {

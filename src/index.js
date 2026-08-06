@@ -17,12 +17,14 @@ async function runLlmCycle() {
       const { filePath, safeSlug, imageFilename } = saveArticle(article);
       console.log(`Saved: ${filePath}`);
 
+      let heroImagePath = null;
       try {
-        await generateHeroImage(article.h1, imageFilename);
+        heroImagePath = await generateHeroImage(article.h1, imageFilename);
         console.log(`Hero image generated: content/${imageFilename}`);
       } catch (err) {
         console.error(`Hero image generation failed for "${article.h1}": ${err.message}`);
       }
+      article.imagePath = heroImagePath;
 
       await addRegisterEntry({
         PublicationDate: new Date().toISOString().slice(0, 10),
@@ -56,6 +58,7 @@ async function uploadArticles(articles) {
         title: article.h1,
         description: article.excerpt,
         content: article.articleHtml,
+        imagePath: article.imagePath,
       };
       try {
         await uploader.uploadPost(post);
