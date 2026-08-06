@@ -30,8 +30,9 @@ jobs:
 
       - name: Install hero image toolchain
         run: |
-          gem install victor
-          apt-get install -y imagemagick
+          sudo gem install victor
+          sudo apt-get update
+          sudo apt-get install -y imagemagick
 
       - name: Build .env from secrets
         run: |
