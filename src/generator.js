@@ -69,42 +69,53 @@ ${existingTitles.join('\n')}
 
 Produce the complete article package as specified. If the topic would duplicate an existing article, instead choose the closest fresh topic from the same area and note it in the excerpt.`;
 
-  let raw = await chatCompletion({
-    system: SYSTEM_PROMPT,
-    user: userPrompt,
-    temperature: 0.7,
-    maxTokens: 6000,
-  });
+  let lastError;
+  for (let attempt = 1; attempt <= 3; attempt++) {
+    try {
+      let raw = await chatCompletion({
+        system: SYSTEM_PROMPT,
+        user: userPrompt,
+        temperature: 0.7,
+        maxTokens: 6000,
+      });
 
-  raw = raw.replace(/```json\n?/g, '').replace(/```\n?/g, '').trim();
-  const parsed = JSON.parse(raw);
-  parsed.topic = topic;
+      raw = raw.replace(/```json\n?/g, '').replace(/```\n?/g, '').trim();
+      const parsed = JSON.parse(raw);
+      parsed.topic = topic;
 
-  const meta = {
-    seoTitle: parsed.seoTitle || '',
-    metaDescription: parsed.metaDescription || '',
-    slug: parsed.slug || 'untitled',
-    excerpt: parsed.excerpt || '',
-    primaryKeyword: parsed.primaryKeyword || '',
-    supportingKeywords: parsed.supportingKeywords || [],
-    searchIntent: parsed.searchIntent || '',
-    topicCategory: parsed.topicCategory || '',
-    internalPagesLinked: parsed.internalPagesLinked || [],
-    h1: parsed.h1 || topic,
-    articleHtml: parsed.articleHtml || '',
-    imageBrief: parsed.imageBrief || '',
-    imageFilename: parsed.imageFilename || '',
-    imageAlt: parsed.imageAlt || '',
-    imageCaption: parsed.imageCaption || '',
-    faq: parsed.faq || [],
-    faqJsonLd: parsed.faqJsonLd || '',
-    articleJsonLd: parsed.articleJsonLd || '',
-  };
+      const meta = {
+        seoTitle: parsed.seoTitle || '',
+        metaDescription: parsed.metaDescription || '',
+        slug: parsed.slug || 'untitled',
+        excerpt: parsed.excerpt || '',
+        primaryKeyword: parsed.primaryKeyword || '',
+        supportingKeywords: parsed.supportingKeywords || [],
+        searchIntent: parsed.searchIntent || '',
+        topicCategory: parsed.topicCategory || '',
+        internalPagesLinked: parsed.internalPagesLinked || [],
+        h1: parsed.h1 || topic,
+        articleHtml: parsed.articleHtml || '',
+        imageBrief: parsed.imageBrief || '',
+        imageFilename: parsed.imageFilename || '',
+        imageAlt: parsed.imageAlt || '',
+        imageCaption: parsed.imageCaption || '',
+        faq: parsed.faq || [],
+        faqJsonLd: parsed.faqJsonLd || '',
+        articleJsonLd: parsed.articleJsonLd || '',
+      };
 
-  if (!meta.articleHtml) {
-    throw new Error(`LLM returned an article with no body for topic: ${topic}`);
+      if (!meta.articleHtml) {
+        throw new Error(`LLM returned an article with no body for topic: ${topic}`);
+      }
+      return meta;
+    } catch (err) {
+      lastError = err;
+      if (attempt < 3) {
+        await new Promise((r) => setTimeout(r, attempt * 2000));
+      }
+    }
   }
-  return meta;
+  throw lastError;
 }
 
 function ensureJpg(filename) {
