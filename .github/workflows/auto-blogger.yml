@@ -28,6 +28,11 @@ jobs:
       - name: Install Playwright browsers
         run: npx playwright install --with-deps chromium
 
+      - name: Install hero image toolchain
+        run: |
+          gem install victor
+          apt-get install -y imagemagick
+
       - name: Build .env from secrets
         run: |
           cat > .env <<EOF
