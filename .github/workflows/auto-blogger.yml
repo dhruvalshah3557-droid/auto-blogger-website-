@@ -1,0 +1,53 @@
+name: Auto Blogger
+
+on:
+  workflow_dispatch:
+  schedule:
+    - cron: "0 * * * *"
+
+permissions:
+  contents: read
+
+jobs:
+  generate-and-upload:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: npm
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Install Playwright browsers
+        run: npx playwright install --with-deps chromium
+
+      - name: Build .env from secrets
+        run: |
+          cat > .env <<EOF
+          ADMIN_USERNAME=${{ secrets.ADMIN_USERNAME }}
+          ADMIN_PASSWORD=${{ secrets.ADMIN_PASSWORD }}
+          ADMIN_LOGIN_URL=${{ secrets.ADMIN_LOGIN_URL }}
+          ADMIN_DASHBOARD_URL=${{ secrets.ADMIN_DASHBOARD_URL }}
+          ADMIN_BLOG_URL=${{ secrets.ADMIN_BLOG_URL }}
+          CONTENT_MODE=${{ secrets.CONTENT_MODE || 'llm' }}
+          RSS_FEED_URL=${{ secrets.RSS_FEED_URL }}
+          USER_LLM_BASE_URL=${{ secrets.USER_LLM_BASE_URL }}
+          USER_LLM_API_KEY=${{ secrets.USER_LLM_API_KEY }}
+          USER_LLM_MODEL=${{ secrets.USER_LLM_MODEL }}
+          LLM_TEMPERATURE=${{ secrets.LLM_TEMPERATURE }}
+          ARTICLES_PER_RUN=${{ secrets.ARTICLES_PER_RUN }}
+          TOPIC_POOL=${{ secrets.TOPIC_POOL }}
+          AUTO_UPLOAD=${{ secrets.AUTO_UPLOAD }}
+          UPLOAD_SCHEDULE=${{ secrets.UPLOAD_SCHEDULE }}
+          RUN_ONCE=${{ secrets.RUN_ONCE }}
+          EOF
+
+      - name: Run auto blogger
+        run: node src/index.js
