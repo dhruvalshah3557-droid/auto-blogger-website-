@@ -46,7 +46,7 @@ jobs:
           TOPIC_POOL=${{ secrets.TOPIC_POOL }}
           AUTO_UPLOAD=${{ secrets.AUTO_UPLOAD }}
           UPLOAD_SCHEDULE=${{ secrets.UPLOAD_SCHEDULE }}
-          RUN_ONCE=${{ secrets.RUN_ONCE }}
+          RUN_ONCE=true
           EOF
 
       - name: Run auto blogger
