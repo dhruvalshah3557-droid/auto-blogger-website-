@@ -6,6 +6,7 @@
   "scripts": {
     "start": "node src/index.js",
     "upload": "node src/index.js",
+    "generate": "node src/index.js",
     "install-playwright": "npx playwright install chromium"
   },
   "keywords": [
