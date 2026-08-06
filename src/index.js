@@ -3,7 +3,7 @@ const config = require('./config');
 const { fetchPosts } = require('./rss');
 const { BlogUploader } = require('./uploader');
 const { nextTopic } = require('./topics');
-const { generateArticle, saveArticle } = require('./generator');
+const { generateArticle, saveArticle, generateHeroImage } = require('./generator');
 const { loadRegisterTitles, addRegisterEntry } = require('./register');
 
 async function runLlmCycle() {
@@ -14,8 +14,15 @@ async function runLlmCycle() {
       const topic = await nextTopic(existingTitles);
       console.log(`Generating article for topic: "${topic}"`);
       const article = await generateArticle(topic, existingTitles);
-      const { filePath, safeSlug } = saveArticle(article);
+      const { filePath, safeSlug, imageFilename } = saveArticle(article);
       console.log(`Saved: ${filePath}`);
+
+      try {
+        await generateHeroImage(article.h1, imageFilename);
+        console.log(`Hero image generated: content/${imageFilename}`);
+      } catch (err) {
+        console.error(`Hero image generation failed for "${article.h1}": ${err.message}`);
+      }
 
       await addRegisterEntry({
         PublicationDate: new Date().toISOString().slice(0, 10),

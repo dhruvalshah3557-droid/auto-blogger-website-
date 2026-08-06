@@ -33,7 +33,8 @@ INTERNAL LINKS
 - Do not force irrelevant links. Never invent a URL.
 
 IMAGE
-- Every article needs a professional hero image placeholder. Provide a detailed image-generation brief, filename, alt text (8-15 words), and caption.
+- Every article needs a professional hero image placeholder. Provide a detailed image-generation brief, filename (always ending in .jpg), alt text (8-15 words), and caption.
+- Images are always delivered in JPG format, landscape 1600x900.
 
 OUTPUT FORMAT
 Return ONLY valid JSON with this exact structure:
@@ -106,9 +107,14 @@ Produce the complete article package as specified. If the topic would duplicate 
   return meta;
 }
 
+function ensureJpg(filename) {
+  return String(filename || 'hero').replace(/\.(png|webp|jpe?g|svg)$/i, '') + '.jpg';
+}
+
 function saveArticle(meta) {
   const safeSlug = meta.slug || meta.h1.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '');
   const filePath = path.join(CONTENT_DIR, `${safeSlug}.md`);
+  const imageFilename = ensureJpg(meta.imageFilename);
   const md = `# ${meta.h1}
 
 **SEO title:** ${meta.seoTitle}
@@ -150,14 +156,31 @@ ${meta.articleJsonLd}
 ## Image Package
 
 - **Brief:** ${meta.imageBrief}
-- **Filename:** ${meta.imageFilename}
+- **Filename:** ${imageFilename}
 - **Alt text:** ${meta.imageAlt}
 - **Caption:** ${meta.imageCaption}
+- **Format:** JPG, landscape 1600x900
 
 [PROFESSIONAL HERO IMAGE REQUIRED - DO NOT PUBLISH WITHOUT IMAGE]
 `;
   fs.writeFileSync(filePath, md);
-  return { filePath, safeSlug };
+  return { filePath, safeSlug, imageFilename };
+}
+
+async function generateHeroImage(title, filename, outDir = CONTENT_DIR) {
+  const { execFile } = require('child_process');
+  const outPath = path.join(outDir, ensureJpg(filename));
+  const rubyScript = path.join(__dirname, '..', 'scripts', 'hero_image.rb');
+  await new Promise((resolve, reject) => {
+    execFile('ruby', [rubyScript, title, outPath], (err, stdout, stderr) => {
+      if (err) {
+        reject(new Error(`Hero image generation failed: ${stderr || err.message}`));
+      } else {
+        resolve(stdout);
+      }
+    });
+  });
+  return outPath;
 }
 
 function htmlToMarkdown(html) {
@@ -180,4 +203,4 @@ function htmlToMarkdown(html) {
   return s.trim();
 }
 
-module.exports = { generateArticle, saveArticle, SYSTEM_PROMPT };
+module.exports = { generateArticle, saveArticle, generateHeroImage, ensureJpg, SYSTEM_PROMPT };

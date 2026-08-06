@@ -35,10 +35,10 @@
 
 - **Hero-image concept:** A single natural fancy red diamond displayed as the focal point — dramatic, premium, museum-quality lighting.
 - **Image-generation or photography brief:** Professional studio product photography. A small natural fancy red diamond (round brilliant or radiant cut) standing upright on a brushed platinum ring stand. Deep charcoal-grey silk backdrop. Soft dramatic side lighting with a subtle warm rim light to reveal the diamond's rich crimson body colour and fire. Shallow depth of field. Luxury jewellery advertising style. Realistic, no text, no watermark, no hands.
-- **Filename:** red-diamond-hero.webp
+- **Filename:** red-diamond-hero.jpg
 - **Alt text (12 words):** Natural fancy red diamond in a radiant cut on a platinum stand.
 - **Caption:** Nature's rarest diamond colour, captured in natural light.
-- **Recommended dimensions and format:** 1600 × 900 pixels, landscape, WebP, compressed for fast loading.
+- **Recommended dimensions and format:** 1600 × 900 pixels, landscape, JPG format, compressed for fast loading.
 - **Image placement:** Top of the article, immediately below the H1 and introduction.
 
 [PROFESSIONAL HERO IMAGE REQUIRED — DO NOT PUBLISH WITHOUT IMAGE]
@@ -219,7 +219,7 @@ Add the following Article JSON-LD on the published page, replacing placeholders 
   "@type": "Article",
   "headline": "Red Diamonds: The Rarest Colour in the World",
   "description": "Red diamonds are the rarest of all natural fancy colour diamonds. Learn how they form, why they are so scarce, and what collectors should look for.",
-  "image": "https://www.colourdiam.com/assets/img/blog/<final-image>.webp",
+  "image": "https://www.colourdiam.com/assets/img/blog/<final-image>.jpg",
   "author": {
     "@type": "Organization",
     "name": "ColourDiam",
